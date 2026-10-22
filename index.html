@@ -1,0 +1,76 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JaquetteFilms</title>
+<style>
+body{font-family:Arial;background:#101827;color:white;margin:0;padding:18px}
+h1{color:#65d6c4}
+input,button,select{padding:12px;margin:4px;border-radius:8px}
+input{max-width:90%;width:360px}
+button{background:#65d6c4;border:0;font-weight:bold}
+#results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:20px}
+.card{background:#1c2940;padding:8px;border-radius:10px}
+.card img{width:100%;aspect-ratio:2/3;object-fit:cover}
+.card label{display:block;padding:8px}
+@media(min-width:650px){#results{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media print{body{background:white;color:black}button,.controls{display:none!important}#results{grid-template-columns:repeat(3,1fr)}.card{background:white;color:black;break-inside:avoid}}
+</style>
+</head>
+<body>
+<h1>JaquetteFilms 🎬</h1>
+<p>Recherche des affiches de films et de séries.</p>
+<div class="controls">
+<input id="token" type="password" placeholder="Jeton API TMDB">
+<br>
+<input id="q" placeholder="Titre du film, série ou dessin animé">
+<br>
+<select id="type">
+<option value="multi">Tout le catalogue</option>
+<option value="movie">Films</option>
+<option value="tv">Séries et animations</option>
+</select>
+<button onclick="search()">Rechercher</button>
+<button onclick="window.print()">Imprimer / PDF</button>
+<p id="status">Ajoute ton jeton TMDB pour commencer.</p>
+</div>
+<div id="results"></div>
+<script>
+async function search(){
+ const token=document.getElementById('token').value.trim();
+ const q=document.getElementById('q').value.trim();
+ const type=document.getElementById('type').value;
+ const status=document.getElementById('status');
+ const results=document.getElementById('results');
+ if(!token||!q){status.textContent="Entre ton jeton API et le titre recherché.";return}
+ status.textContent="Recherche en cours...";
+ results.innerHTML="";
+ try{
+  const url="https://api.themoviedb.org/3/search/"+type+"?query="+encodeURIComponent(q)+"&language=fr-FR";
+  const res=await fetch(url,{headers:{Authorization:"Bearer "+token,Accept:"application/json"}});
+  if(!res.ok)throw new Error("Erreur API "+res.status);
+  const data=await res.json();
+  const items=(data.results||[]).filter(x=>x.poster_path&&x.media_type!=="person");
+  items.forEach(item=>{
+   const title=item.title||item.name||"Sans titre";
+   const year=(item.release_date||item.first_air_date||"").slice(0,4);
+   const card=document.createElement("div");card.className="card";
+   const img=document.createElement("img");
+   img.src="https://image.tmdb.org/t/p/w500"+item.poster_path;
+   img.alt=title;
+   const label=document.createElement("label");
+   const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.checked=true;
+   checkbox.onchange=()=>card.style.display=checkbox.checked?"block":"none";
+   label.append(checkbox,document.createTextNode(" Sélectionner"));
+   const caption=document.createElement("p");caption.textContent=title+" ("+year+")";
+   card.append(img,caption,label);results.append(card);
+  });
+  status.textContent=items.length+" affiche(s) trouvée(s). Décoche celles à exclure avant l'impression.";
+ }catch(e){status.textContent="Recherche impossible : "+e.message+". Vérifie le jeton et Internet."}
+}
+</script>
+</body>
+  </html>
+  
